@@ -1,0 +1,69 @@
+name: space_hub
+description: Multiplatform streaming ecosystem mobile app
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  provider: ^6.1.1
+  riverpod: ^2.4.9
+  
+  # Networking
+  dio: ^5.4.0
+  graphql_flutter: ^5.1.2
+  
+  # Authentication
+  firebase_auth: ^4.15.3
+  google_sign_in: ^6.2.1
+  
+  # Streaming Platforms
+  twitch_api: ^1.0.0
+  youtube_api: ^1.1.0
+  
+  # UI
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  animations: ^2.0.8
+  
+  # Utilities
+  equatable: ^2.0.5
+  freezed_annotation: ^2.2.0
+  json_annotation: ^4.8.1
+  
+  # Platform Integration
+  flutter_secure_storage: ^9.0.0
+  device_info_plus: ^9.1.0
+  
+  # Logging
+  logger: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.6
+  freezed: ^2.4.5
+  json_serializable: ^6.7.1
+  mockito: ^5.4.3
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+  
+  fonts:
+    - family: SpaceHubIcons
+      fonts:
+        - asset: assets/fonts/SpaceHubIcons.ttf

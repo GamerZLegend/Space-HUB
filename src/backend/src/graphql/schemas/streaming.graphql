@@ -1,0 +1,70 @@
+type StreamEvent {
+  id: ID!
+  type: StreamEventType!
+  platform: String!
+  timestamp: DateTime!
+  payload: JSON
+}
+
+enum StreamEventType {
+  STREAM_STARTED
+  STREAM_ENDED
+  FOLLOWER
+  SUBSCRIBER
+  DONATION
+  RAID
+  CHAT_MESSAGE
+}
+
+type StreamMetrics {
+  platform: String!
+  viewers: Int!
+  followers: Int!
+  subscribers: Int
+  totalWatchTime: Float
+}
+
+type StreamSchedule {
+  id: ID!
+  title: String!
+  startTime: DateTime!
+  endTime: DateTime
+  platforms: [String!]!
+  description: String
+}
+
+type Query {
+  getStreamEvents(
+    platform: String
+    startDate: DateTime
+    endDate: DateTime
+  ): [StreamEvent!]!
+  
+  getStreamMetrics(platform: String): StreamMetrics
+  
+  getUserStreamSchedule: [StreamSchedule!]!
+}
+
+type Mutation {
+  createStreamSchedule(
+    title: String!
+    startTime: DateTime!
+    endTime: DateTime
+    platforms: [String!]!
+    description: String
+  ): StreamSchedule!
+  
+  updateStreamSchedule(
+    id: ID!
+    title: String
+    startTime: DateTime
+    endTime: DateTime
+    platforms: [String!]
+    description: String
+  ): StreamSchedule!
+  
+  deleteStreamSchedule(id: ID!): Boolean!
+}
+
+scalar DateTime
+scalar JSON

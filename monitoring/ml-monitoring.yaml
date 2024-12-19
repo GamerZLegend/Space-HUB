@@ -1,0 +1,270 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ml-service-alerts
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+  - name: ml.rules
+    rules:
+    # Model Performance Alerts
+    - alert: MLModelPerformanceDegraded
+      expr: |
+        ml_model_accuracy_score < 0.85 or
+        ml_model_f1_score < 0.80
+      for: 15m
+      labels:
+        severity: warning
+        team: ml
+      annotations:
+        summary: ML model performance degraded
+        description: "Model {{ $labels.model }} performance metrics below threshold"
+
+    # Prediction Latency Alerts
+    - alert: MLPredictionLatencyHigh
+      expr: |
+        histogram_quantile(0.95, sum(rate(ml_prediction_duration_seconds_bucket[5m])) by (le, model)) > 0.5
+      for: 10m
+      labels:
+        severity: warning
+        team: ml
+      annotations:
+        summary: High prediction latency
+        description: "95th percentile prediction latency above 500ms for model {{ $labels.model }}"
+
+    # Resource Usage Alerts
+    - alert: MLServiceHighMemoryUsage
+      expr: |
+        container_memory_usage_bytes{container="ml-service"} / 
+        container_spec_memory_limit_bytes{container="ml-service"} > 0.85
+      for: 15m
+      labels:
+        severity: warning
+        team: ml
+      annotations:
+        summary: High memory usage in ML service
+        description: "ML service using more than 85% of allocated memory"
+
+    # GPU Utilization Alerts
+    - alert: GPUUtilizationLow
+      expr: |
+        nvidia_gpu_duty_cycle < 30
+      for: 30m
+      labels:
+        severity: info
+        team: ml
+      annotations:
+        summary: Low GPU utilization
+        description: "GPU utilization below 30% for 30 minutes"
+
+    # Model Drift Alerts
+    - alert: FeatureDriftDetected
+      expr: |
+        ml_feature_drift_score > 0.3
+      for: 1h
+      labels:
+        severity: warning
+        team: ml
+      annotations:
+        summary: Feature drift detected
+        description: "Feature drift score exceeding threshold for {{ $labels.feature }}"
+
+    # Error Rate Alerts
+    - alert: MLServiceHighErrorRate
+      expr: |
+        rate(ml_prediction_errors_total[5m]) / 
+        rate(ml_prediction_requests_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+        team: ml
+      annotations:
+        summary: High error rate in ML predictions
+        description: "Error rate exceeding 5% in ML service"
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ml-service-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: ml-service
+  podMetricsEndpoints:
+  - port: metrics
+    interval: 15s
+    scrapeTimeout: 14s
+    path: /metrics
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_model_version]
+      targetLabel: model_version
+    - sourceLabels: [__meta_kubernetes_pod_label_environment]
+      targetLabel: environment
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ml-service-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: ml-service
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    metricRelabelings:
+    - sourceLabels: [model_name]
+      targetLabel: model
+    - sourceLabels: [prediction_type]
+      targetLabel: type
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-ml-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "true"
+data:
+  ml-dashboard.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "hiddenSeries": false,
+          "id": 2,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.2.0",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "ml_model_accuracy_score",
+              "interval": "",
+              "legendFormat": "Model Accuracy",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Model Accuracy",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        }
+      ],
+      "schemaVersion": 26,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "ML Service Dashboard",
+      "uid": null,
+      "version": 0
+    }

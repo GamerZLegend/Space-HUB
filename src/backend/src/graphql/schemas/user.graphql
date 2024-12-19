@@ -1,0 +1,59 @@
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  avatar: String
+  platforms: [Platform!]
+  createdAt: DateTime!
+  updatedAt: DateTime
+}
+
+type Platform {
+  id: ID!
+  name: String!
+  accessToken: String!
+  refreshToken: String
+  expiresAt: DateTime
+}
+
+type AuthPayload {
+  user: User!
+  token: String!
+}
+
+input RegisterInput {
+  username: String!
+  email: String!
+  password: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Query {
+  currentUser: User
+  getUserPlatforms: [Platform!]
+}
+
+type Mutation {
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  
+  connectPlatform(
+    platformName: String!, 
+    accessToken: String!, 
+    refreshToken: String
+  ): Platform!
+  
+  disconnectPlatform(platformName: String!): Boolean!
+  
+  updateUserProfile(
+    username: String
+    avatar: String
+  ): User!
+}
+
+scalar DateTime
